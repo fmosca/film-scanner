@@ -15,8 +15,8 @@ class CameraManager:
     """
     Responsible for all camera interactions, decoupled from UI.
     """
-    def __init__(self):
-        self.camera = OlympusCamera()
+    def __init__(self, camera_cls=OlympusCamera):
+        self.camera = camera_cls()
         self.live_view_active = False
         self.port = 40000
         self.img_queue = queue.SimpleQueue()
@@ -38,7 +38,16 @@ class CameraManager:
             return self._original_send_command(command, **args)
         self.camera._original_send_command = self.camera.send_command
         self.camera.send_command = send_command_with_direct_url.__get__(self.camera)
-    
+
+    def get_info(self):
+        """Check if the camera is connected."""
+        try:
+            return self.camera.get_camera_info()
+        except Exception as e:
+            print(f"Error getting camera info: {str(e)}")
+            return None
+
+
     def start_live_view(self, lvqty="0640x0480"):
         """Start the camera's live view streaming."""
         if self.live_view_active:
