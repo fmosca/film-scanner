@@ -38,23 +38,16 @@ cd film_scanner
 # cd film_scanner
 
 # Create a virtual environment
-python -m venv venv
+python -m venv .venv/film-scanner
 
 # Activate the virtual environment
 # On Windows:
-venv\Scripts\activate
+.venv\film-scanner\Scripts\activate
 # On macOS/Linux:
-source venv/bin/activate
+source .venv/film-scanner/bin/activate
 ```
 
 ### 3. Install Dependencies
-
-```bash
-# Install the required packages
-pip install olympuswifi Pillow numpy
-```
-
-Alternatively, you can install from the requirements file:
 
 ```bash
 pip install -r requirements.txt

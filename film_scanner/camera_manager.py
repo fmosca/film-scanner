@@ -15,6 +15,7 @@ class CameraManager:
     """
     Responsible for all camera interactions, decoupled from UI.
     """
+
     def __init__(self, camera_cls=OlympusCamera):
         self.camera = camera_cls()
         self.live_view_active = False
@@ -24,55 +25,48 @@ class CameraManager:
         self.thread = None
         self.focus_peaking_on = False
         self.zoom_level = 1  # 1x zoom
-        
+
         # Extend OlympusCamera functionality
         self._extend_camera_functionality()
-    
+
     def _extend_camera_functionality(self):
         """Add additional functionality to the OlympusCamera class."""
+
         def send_command_with_direct_url(self, command, is_direct_url=False, **args):
             """Modified send_command that can handle direct URLs for RAW files."""
             if is_direct_url:
                 # Direct URL access for raw files
                 return requests.get(command, headers=self.HEADERS)
             return self._original_send_command(command, **args)
+
         self.camera._original_send_command = self.camera.send_command
         self.camera.send_command = send_command_with_direct_url.__get__(self.camera)
-
-    def get_info(self):
-        """Check if the camera is connected."""
-        try:
-            return self.camera.get_camera_info()
-        except Exception as e:
-            print(f"Error getting camera info: {str(e)}")
-            return None
-
 
     def start_live_view(self, lvqty="0640x0480"):
         """Start the camera's live view streaming."""
         if self.live_view_active:
             return
-            
+
         try:
             self.camera.start_liveview(port=self.port, lvqty=lvqty)
-            
+
             # Start receiver in a new thread
             self.receiver = LiveViewReceiver(self.img_queue)
             self.thread = threading.Thread(target=self.receiver.receive_packets, args=[self.port])
             self.thread.daemon = True
             self.thread.start()
-            
+
             self.live_view_active = True
             return True
         except Exception as e:
             print(f"Error starting live view: {str(e)}")
             return False
-    
+
     def stop_live_view(self):
         """Stop the camera's live view streaming."""
         if not self.live_view_active:
             return True
-            
+
         try:
             if self.receiver:
                 self.receiver.shut_down()
@@ -82,7 +76,7 @@ class CameraManager:
         except Exception as e:
             print(f"Error stopping live view: {str(e)}")
             return False
-    
+
     def take_picture(self):
         """Take a picture with the camera."""
         try:
@@ -96,62 +90,62 @@ class CameraManager:
                     pass
                 self.zoom_level = 1
                 self.focus_peaking_on = False
-            
+
             # Take the picture
             self.camera.take_picture()
             return True
         except Exception as e:
             print(f"Error taking picture: {str(e)}")
             return False
-    
+
     def toggle_focus_peaking(self):
         """Toggle focus peaking feature on/off."""
         if not self.live_view_active:
             return False
-        
+
         try:
             # Switch to recording mode if not already
             if self.camera.Mode != self.camera.CamMode.RECORD:
                 self.camera.SwitchMode(self.camera.CamMode.RECORD)
-            
+
             # Toggle focus peaking
             self.focus_peaking_on = not self.focus_peaking_on
-            
+
             # Set the camera property for focus peaking
             if self.focus_peaking_on:
                 self.camera.set_camprop("FOCUS_PEAKING", "ON")
             else:
                 self.camera.set_camprop("FOCUS_PEAKING", "OFF")
-            
+
             return True
         except Exception as e:
             print(f"Error toggling focus peaking: {str(e)}")
             return False
-    
+
     def cycle_zoom(self):
         """Cycle through zoom levels: 1x, 3x, 5x, 7x, 10x."""
         if not self.live_view_active:
             return False, None
-        
+
         try:
             # Switch to recording mode if not already
             if self.camera.Mode != self.camera.CamMode.RECORD:
                 self.camera.SwitchMode(self.camera.CamMode.RECORD)
-            
+
             # Cycle through zoom levels
             zoom_levels = [1, 3, 5, 7, 10]
             current_index = zoom_levels.index(self.zoom_level) if self.zoom_level in zoom_levels else 0
             next_index = (current_index + 1) % len(zoom_levels)
             self.zoom_level = zoom_levels[next_index]
-            
+
             # Set the camera property for zoom
             self.camera.set_camprop("ZOOM_LEVEL", str(self.zoom_level))
-            
+
             return True, self.zoom_level
         except Exception as e:
             print(f"Error changing zoom: {str(e)}")
             return False, None
-    
+
     def get_latest_image(self):
         """Get the most recent image from the camera."""
         try:
@@ -160,16 +154,16 @@ class CameraManager:
                 self.camera.send_command('switch_cammode', mode='play')
             except Exception as e:
                 print(f"Warning: Could not switch to playback mode: {e}")
-            
+
             # List images and find the last JPG image
             images = list(self.camera.list_images(dir='/DCIM/100OLYMP'))
             # First try to find matching RAW files
             raw_images = [img for img in images if img.file_name.lower().endswith('.orf')]
             jpg_images = [img for img in images if img.file_name.lower().endswith('.jpg')]
-            
+
             if not raw_images and not jpg_images:
                 raise Exception("No RAW or JPEG images found")
-            
+
             # Prefer RAW files if available
             if raw_images:
                 last_image = raw_images[-1]
@@ -177,14 +171,14 @@ class CameraManager:
             else:
                 last_image = jpg_images[-1]
                 print(f"Last JPEG image: {last_image.file_name}")
-            
+
             # Try multiple methods to get the image
             image_download_methods = [
                 lambda: self.camera.download_image(last_image.file_name),
                 lambda: self.camera.download_screennail(last_image.file_name),
                 lambda: self.camera.download_thumbnail(last_image.file_name)
             ]
-            
+
             # Try each method until successful
             jpeg_data = None
             for method in image_download_methods:
@@ -194,15 +188,15 @@ class CameraManager:
                     break
                 except Exception as e:
                     print(f"Failed to download using {method.__name__}: {e}")
-            
+
             if not jpeg_data:
                 raise Exception("Could not download image")
-            
+
             return last_image.file_name, jpeg_data
         except Exception as e:
             print(f"Error getting latest image: {str(e)}")
             return None, None
-    
+
     def download_image(self, image_path):
         """Download an image from the camera by its path."""
         try:
@@ -217,12 +211,12 @@ class CameraManager:
             print(f"Error downloading image {image_path}: {str(e)}")
             print(f"Trying alternative download method...")
             return None
-    
+
     def get_next_live_frame(self):
         """Get the next frame from the live view queue."""
         if self.img_queue.empty():
             return None
-        
+
         try:
             return self.img_queue.get()
         except Exception as e:

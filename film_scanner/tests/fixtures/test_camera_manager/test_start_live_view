@@ -1,0 +1,134 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Host:
+      - 192.168.0.10
+      User-Agent:
+      - OI.Share v2
+    method: GET
+    uri: http://192.168.0.10/switch_cammode.cgi?lvqty=0640x0480&mode=rec
+  response:
+    body:
+      string: ''
+    headers:
+      Content-Length:
+      - '0'
+      Content-Type:
+      - www/unknown
+      Date:
+      - Thu, 06 Mar 2025 06:38:35 GMT
+      Server:
+      - lighttpd/1.4.46
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Host:
+      - 192.168.0.10
+      User-Agent:
+      - OI.Share v2
+    method: GET
+    uri: http://192.168.0.10/exec_takemisc.cgi?com=startliveview&port=40000
+  response:
+    body:
+      string: <?xml version="1.0"?><funcidlist><funcid name="framesize"/><funcid name="afframeinfo"/><funcid
+        name="mntmediainfo"/><funcid name="rotation"/><funcid name="maxtakenum"/><funcid
+        name="temperror"/><funcid name="shutspeedvalue"/><funcid name="focalvalue"/><funcid
+        name="expcomp"/><funcid name="wbvalue"/><funcid name="isospeedvalue"/><funcid
+        name="contnotstop"/><funcid name="aspectratio"/><funcid name="liveaddinfo"/><funcid
+        name="expphotowarning"/><funcid name="focusinfo"/><funcid name="zoominfo"/><funcid
+        name="maxmovietime"/><funcid name="nrimage"/><funcid name="recmovietime"/></funcidlist>
+    headers:
+      Content-Length:
+      - '592'
+      Content-Type:
+      - text/xml
+      Date:
+      - Thu, 06 Mar 2025 06:38:35 GMT
+      Server:
+      - lighttpd/1.4.46
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Host:
+      - 192.168.0.10
+      User-Agent:
+      - OI.Share v2
+    method: GET
+    uri: http://192.168.0.10/switch_cammode.cgi?lvqty=0640x0480&mode=rec
+  response:
+    body:
+      string: ''
+    headers:
+      Content-Length:
+      - '0'
+      Content-Type:
+      - www/unknown
+      Date:
+      - Thu, 06 Mar 2025 06:44:04 GMT
+      Server:
+      - lighttpd/1.4.46
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Host:
+      - 192.168.0.10
+      User-Agent:
+      - OI.Share v2
+    method: GET
+    uri: http://192.168.0.10/exec_takemisc.cgi?com=startliveview&port=40000
+  response:
+    body:
+      string: <?xml version="1.0"?><funcidlist><funcid name="framesize"/><funcid name="afframeinfo"/><funcid
+        name="mntmediainfo"/><funcid name="rotation"/><funcid name="maxtakenum"/><funcid
+        name="temperror"/><funcid name="shutspeedvalue"/><funcid name="focalvalue"/><funcid
+        name="expcomp"/><funcid name="wbvalue"/><funcid name="isospeedvalue"/><funcid
+        name="contnotstop"/><funcid name="aspectratio"/><funcid name="liveaddinfo"/><funcid
+        name="expphotowarning"/><funcid name="focusinfo"/><funcid name="zoominfo"/><funcid
+        name="maxmovietime"/><funcid name="nrimage"/><funcid name="recmovietime"/></funcidlist>
+    headers:
+      Content-Length:
+      - '592'
+      Content-Type:
+      - text/xml
+      Date:
+      - Thu, 06 Mar 2025 06:44:04 GMT
+      Server:
+      - lighttpd/1.4.46
+    status:
+      code: 200
+      message: OK
+version: 1
