@@ -38,15 +38,17 @@ def vcr_test(request, use_live):
 
 class TestCameraManager:
     @pytest.fixture(autouse=True)
-    def setup_method(self):
+    def setup_method(self, vcr_test):
         """
         Fixture to set up camera manager before each test
         autouse=True means it runs automatically for each test
         """
         # Create a mock camera
         self.mock_camera = MagicMock()
+        mock_camera_factory = lambda: self.mock_camera
         # self.camera_manager = CameraManager(self.mock_camera)
-        self.camera_manager = CameraManager()
+        with vcr_test:
+            self.camera_manager = CameraManager(mock_camera_factory)
 
     def test_start_live_view(self, vcr_test):
         """Test starting live view"""

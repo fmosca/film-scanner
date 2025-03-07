@@ -14,7 +14,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "film-scanner=main:main",
+            "film-scanner=film_scanner.main:main",
         ],
     },
     classifiers=[

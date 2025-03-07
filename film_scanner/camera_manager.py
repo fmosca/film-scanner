@@ -146,8 +146,9 @@ class CameraManager:
             print(f"Error changing zoom: {str(e)}")
             return False, None
 
-    def get_latest_image(self):
-        """Get the most recent image from the camera."""
+
+    def get_latest_image(self, prefer_raw=True):
+        """Get the most recent image from the camera. Set prefer_raw=False to always get JPEG."""
         try:
             # Try to switch to playback mode
             try:
@@ -164,35 +165,42 @@ class CameraManager:
             if not raw_images and not jpg_images:
                 raise Exception("No RAW or JPEG images found")
 
-            # Prefer RAW files if available
-            if raw_images:
-                last_image = raw_images[-1]
-                print(f"Last RAW image: {last_image.file_name}")
+            # Select which image to return based on preference and availability
+            if prefer_raw and raw_images:
+                selected_image = raw_images[-1]
+                print(f"Selected RAW image: {selected_image.file_name}")
             else:
-                last_image = jpg_images[-1]
-                print(f"Last JPEG image: {last_image.file_name}")
+                if not jpg_images:
+                    raise Exception("No JPEG images found")
+                selected_image = jpg_images[-1]
+                print(f"Selected JPEG image: {selected_image.file_name}")
 
-            # Try multiple methods to get the image
-            image_download_methods = [
-                lambda: self.camera.download_image(last_image.file_name),
-                lambda: self.camera.download_screennail(last_image.file_name),
-                lambda: self.camera.download_thumbnail(last_image.file_name)
-            ]
+            # Define named download methods for better logging
+            def download_full():
+                return self.camera.download_image(selected_image.file_name)
+
+            def download_screennail():
+                return self.camera.download_screennail(selected_image.file_name)
+
+            def download_thumbnail():
+                return self.camera.download_thumbnail(selected_image.file_name)
 
             # Try each method until successful
-            jpeg_data = None
-            for method in image_download_methods:
+            image_data = None
+            download_methods = [download_full, download_screennail, download_thumbnail]
+
+            for method in download_methods:
                 try:
-                    jpeg_data = method()
+                    image_data = method()
                     print(f"Successfully downloaded image using {method.__name__}")
                     break
                 except Exception as e:
                     print(f"Failed to download using {method.__name__}: {e}")
 
-            if not jpeg_data:
+            if not image_data:
                 raise Exception("Could not download image")
 
-            return last_image.file_name, jpeg_data
+            return selected_image.file_name, image_data
         except Exception as e:
             print(f"Error getting latest image: {str(e)}")
             return None, None
@@ -202,15 +210,23 @@ class CameraManager:
         try:
             # For RAW files, we need to use the direct HTTP GET request
             if image_path.lower().endswith('.orf'):
-                url = f"{self.camera.camera.URL_PREFIX}{image_path[1:]}"
-                response = self.camera.camera.send_command(url, is_direct_url=True)
+                url = f"{self.camera.URL_PREFIX}{image_path[1:]}"
+                response = self.camera.send_command(url, is_direct_url=True)
                 return response.content
             else:
-                return self.camera.camera.download_image(image_path)
+                return self.camera.download_image(image_path)
         except Exception as e:
             print(f"Error downloading image {image_path}: {str(e)}")
             print(f"Trying alternative download method...")
-            return None
+
+            # Fallback method - try direct HTTP request for any file
+            try:
+                url = f"{self.camera.URL_PREFIX}{image_path[1:]}"
+                response = self.camera.send_command(url, is_direct_url=True)
+                return response.content
+            except Exception as e2:
+                print(f"Fallback download also failed: {str(e2)}")
+                return None
 
     def get_next_live_frame(self):
         """Get the next frame from the live view queue."""

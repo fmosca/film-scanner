@@ -215,28 +215,29 @@ class FilmScannerApp:
             self.update_status("Failed to take photo")
             # Restart live view if there was an error
             self.start_live_view()
-    
+
     def show_preview(self):
         """Show a preview of the last taken photo."""
         self.update_status("Loading preview...")
         self.current_mode = "preview"
-        
-        # Get the latest image
-        image_path, jpeg_data = self.camera_manager.get_latest_image()
-        
+
+        # Get the latest image, preferring JPEG for preview
+        image_path, jpeg_data = self.camera_manager.get_latest_image(prefer_raw=False)
+
+        # Store the RAW path for later download if available
+        raw_path, _ = self.camera_manager.get_latest_image(prefer_raw=True)
+        self.latest_image_path = raw_path if raw_path else image_path
+
         if image_path and jpeg_data:
-            # Store image path for later download
-            self.latest_image_path = image_path
-            
             # Convert JPEG to PIL Image
             image = Image.open(io.BytesIO(jpeg_data))
-            
+
             # Resize window based on image size
             self.resize_window_for_image(image.width, image.height)
-            
+
             # Display the image
             self.preview_manager.display_image(image)
-            
+
             # Update info
             self.update_status("Preview - S to accept and download, R to reject")
             self.info_label.config(text=f"Preview: {os.path.basename(image_path)}")
@@ -244,7 +245,7 @@ class FilmScannerApp:
             self.update_status("Failed to load preview")
             # Restart live view
             self.start_live_view()
-    
+
     def toggle_focus_peaking(self, event=None):
         """Toggle focus peaking feature."""
         if self.current_mode != "live_view":
