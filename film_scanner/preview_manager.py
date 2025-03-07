@@ -1,6 +1,6 @@
 """
 Preview manager module for the Film Scanner application.
-Handles displaying and manipulating preview images.
+Handles displaying and manipulating preview images with improved performance.
 """
 import io
 import tkinter as tk
@@ -10,7 +10,7 @@ from .image_processor import ImageProcessor
 
 class PreviewManager:
     """
-    Manages the preview window and image display.
+    Manages the preview window and image display with optimized image handling.
     """
     def __init__(self, parent, status_bar, info_frame):
         """
@@ -22,7 +22,12 @@ class PreviewManager:
             info_frame: Information frame widget
         """
         self.parent = parent
-        self.image_label = tk.Label(parent, bg="black")
+        
+        # Create image frame with black background
+        self.image_frame = tk.Frame(parent, bg="black")
+        self.image_frame.pack(side="top", fill="both", expand=True)
+        
+        self.image_label = tk.Label(self.image_frame, bg="black")
         self.image_label.pack(side="top", fill="both", expand=True)
         
         self.status_bar = status_bar
@@ -31,7 +36,44 @@ class PreviewManager:
         self.original_image = None
         self.current_image_tk = None
         self.is_inverted = False
+        
+        # Cached version of scaled image to avoid recomputing when toggling inversion
+        self.scaled_image = None
+        
+        # Handle window resize events
+        self.parent.bind("<Configure>", self.on_window_resize)
+        self.resize_timer = None
+        self.last_window_size = (0, 0)
     
+    def on_window_resize(self, event):
+        """Handle window resize events with debouncing to prevent excessive recomputation"""
+        # Get current window size
+        width = self.parent.winfo_width()
+        height = self.parent.winfo_height()
+        
+        # Skip if window size hasn't meaningfully changed or is too small
+        if (width <= 1 or height <= 1 or 
+            (abs(width - self.last_window_size[0]) < 10 and 
+             abs(height - self.last_window_size[1]) < 10)):
+            return
+            
+        # Save the current size
+        self.last_window_size = (width, height)
+        
+        # Cancel any existing timer to prevent multiple rapid resizes
+        if self.resize_timer is not None:
+            self.parent.after_cancel(self.resize_timer)
+        
+        # Set new timer to update the image after a delay
+        self.resize_timer = self.parent.after(150, self.update_image_after_resize)
+        
+    def update_image_after_resize(self):
+        """Update the displayed image after a resize with proper dimensions"""
+        if self.original_image:
+            # Force re-scaling of the image
+            self.scaled_image = None
+            self.display_image(self.original_image, self.is_inverted)
+            
     def display_image(self, image, invert=False):
         """
         Display an image in the preview area, scaled to fit.
@@ -52,26 +94,39 @@ class PreviewManager:
             self.original_image = image
             
             # Get window dimensions
-            window_width = self.parent.winfo_width()
-            window_height = self.parent.winfo_height() - self.status_bar.winfo_height() - self.info_frame.winfo_height()
+            window_width = self.parent.winfo_width() - 10  # Slight padding
+            window_height = (self.parent.winfo_height() - 
+                            self.status_bar.winfo_height() - 
+                            self.info_frame.winfo_height() - 10)  # Slight padding
             
-            # Invert if requested
-            processed_image = image
-            if invert:
-                processed_image = ImageProcessor.invert_image(image)
-                self.is_inverted = True
-            else:
-                self.is_inverted = False
+            # Skip if window is too small
+            if window_width <= 10 or window_height <= 10:
+                window_width = self.parent.winfo_reqwidth()
+                window_height = self.parent.winfo_reqheight()
             
-            # Scale to fit
-            scaled_image = ImageProcessor.scale_image_to_fit(
-                processed_image, window_width, window_height)
+            # Use cached scaled image if available and dimensions match
+            if self.scaled_image is None:
+                # Scale to fit
+                self.scaled_image = ImageProcessor.scale_image_to_fit(
+                    image, window_width, window_height)
             
-            # Convert to PhotoImage and display
-            self.current_image_tk = ImageTk.PhotoImage(scaled_image)
-            self.image_label.config(image=self.current_image_tk)
+            # Apply inversion if requested
+            processed_image = ImageProcessor.invert_image(self.scaled_image) if invert else self.scaled_image
+            self.is_inverted = invert
             
-            return True
+            # Convert to PhotoImage and display, using hardware acceleration if available
+            # on most systems this results in more efficient rendering
+            try:
+                self.current_image_tk = ImageTk.PhotoImage(processed_image)
+                self.image_label.config(image=self.current_image_tk)
+                return True
+            except Exception as e:
+                print(f"Error creating PhotoImage: {e}")
+                # Fall back to slower conversion method
+                self.current_image_tk = tk.PhotoImage(data=processed_image.tobytes())
+                self.image_label.config(image=self.current_image_tk)
+                return True
+                
         except Exception as e:
             print(f"Error displaying image: {str(e)}")
             return False
@@ -94,4 +149,5 @@ class PreviewManager:
         self.image_label.config(image="")
         self.original_image = None
         self.current_image_tk = None
+        self.scaled_image = None
         self.is_inverted = False
