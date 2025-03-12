@@ -73,15 +73,15 @@ class PreviewManager:
             # Force re-scaling of the image
             self.scaled_image = None
             self.display_image(self.original_image, self.is_inverted)
-            
+
     def display_image(self, image, invert=False):
         """
         Display an image in the preview area, scaled to fit.
-        
+
         Args:
             image: PIL.Image object or bytes of JPEG data
             invert: Whether to invert the image colors
-            
+
         Returns:
             bool: Success or failure
         """
@@ -89,62 +89,54 @@ class PreviewManager:
             # Convert bytes to PIL.Image if needed
             if isinstance(image, bytes):
                 image = Image.open(io.BytesIO(image))
-            
+
             # Store original image
             self.original_image = image
-            
-            # Get window dimensions
-            window_width = self.parent.winfo_width() - 10  # Slight padding
-            window_height = (self.parent.winfo_height() - 
-                            self.status_bar.winfo_height() - 
-                            self.info_frame.winfo_height() - 10)  # Slight padding
-            
+
+            # Get window dimensions - add extra padding to prevent underestimation
+            window_width = max(10, self.parent.winfo_width() - 20)  # More padding
+            window_height = max(10, self.parent.winfo_height() -
+                                self.status_bar.winfo_height() -
+                                self.info_frame.winfo_height() - 20)  # More padding
+
             # Skip if window is too small
-            if window_width <= 10 or window_height <= 10:
-                window_width = self.parent.winfo_reqwidth()
-                window_height = self.parent.winfo_reqheight()
-            
-            # Use cached scaled image if available and dimensions match
-            if self.scaled_image is None:
-                # Scale to fit
-                self.scaled_image = ImageProcessor.scale_image_to_fit(
-                    image, window_width, window_height)
-            
+            if window_width <= 20 or window_height <= 20:
+                window_width = max(100, self.parent.winfo_reqwidth())
+                window_height = max(100, self.parent.winfo_reqheight())
+
+            # Force scale to be recalculated more often
+            self.scaled_image = None
+
+            # Scale to fit
+            self.scaled_image = ImageProcessor.scale_image_to_fit(
+                image, window_width, window_height)
+
             # Apply inversion if requested
             processed_image = ImageProcessor.invert_image(self.scaled_image) if invert else self.scaled_image
             self.is_inverted = invert
-            
-            # Convert to PhotoImage and display, using hardware acceleration if available
-            # on most systems this results in more efficient rendering
-            try:
-                self.current_image_tk = ImageTk.PhotoImage(processed_image)
-                self.image_label.config(image=self.current_image_tk)
-                self.parent.update_idletasks()  # Force UI refresh for each new frame
-                return True
-            except Exception as e:
-                print(f"Error creating PhotoImage: {e}")
-                # Fall back to slower conversion method
-                self.current_image_tk = tk.PhotoImage(data=processed_image.tobytes())
-                self.image_label.config(image=self.current_image_tk)
-                self.parent.update_idletasks()  # Also force refresh for the fallback method
-                return True
-                
+
+            # Convert to PhotoImage and display
+            self.current_image_tk = ImageTk.PhotoImage(processed_image)
+            self.image_label.config(image=self.current_image_tk)
+
+            # Force UI to update immediately - this is critical
+            self.parent.update_idletasks()
+            return True
         except Exception as e:
             print(f"Error displaying image: {str(e)}")
             return False
-    
-    def toggle_inversion(self):
-        """
-        Toggle inversion of the currently displayed image.
-        
-        Returns:
-            bool: Success or failure
-        """
-        if self.original_image is None:
-            return False
-        
-        self.is_inverted = not self.is_inverted
-        return self.display_image(self.original_image, self.is_inverted)
+        def toggle_inversion(self):
+            """
+            Toggle inversion of the currently displayed image.
+
+            Returns:
+                bool: Success or failure
+            """
+            if self.original_image is None:
+                return False
+
+            self.is_inverted = not self.is_inverted
+            return self.display_image(self.original_image, self.is_inverted)
     
     def clear(self):
         """Clear the preview display."""

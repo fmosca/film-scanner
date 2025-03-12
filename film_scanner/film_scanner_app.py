@@ -202,17 +202,17 @@ class FilmScannerApp:
                     if self.preview_manager.current_image_tk is None:
                         self.resize_window_for_image(frame.width, frame.height)
 
-                    # Always display the frame - we shouldn't be dropping frames
-                    self.preview_manager.display_image(frame)
+                    # Display the frame
+                    self.preview_manager.display_image(frame, self.preview_manager.is_inverted)
 
-                    # Force the UI to update immediately
-                    self.window.update_idletasks()
+                    # Force a complete UI update
+                    self.window.update()
 
                     # Update FPS counter
                     self.frame_count += 1
                     self.update_fps_display()
 
-            # Always check for frames frequently (50-60fps)
+            # Always schedule the next check
             self.window.after(16, self.check_live_view_updates)
 
         except Exception as e:
