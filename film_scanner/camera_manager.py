@@ -1,6 +1,6 @@
 """
-Camera manager module for the Film Scanner application.
-Handles all interactions with the Olympus camera with optimized live view.
+Updated Camera manager module for the Film Scanner application.
+Adds support for extracting and exposing camera status information.
 """
 import queue
 import threading
@@ -11,12 +11,13 @@ import requests
 from PIL import Image
 from olympuswifi.camera import OlympusCamera
 from olympuswifi.liveview import LiveViewReceiver
+from film_scanner.extended_liveview_receiver import ExtendedLiveViewReceiver
 
 
 class CameraManager:
     """
     Responsible for all camera interactions, decoupled from UI.
-    Optimized for faster live view performance.
+    Optimized for faster live view performance and status information.
     """
 
     def __init__(self, camera_cls=OlympusCamera):
@@ -24,6 +25,7 @@ class CameraManager:
         self.live_view_active = False
         self.port = 40000
         self.img_queue = queue.Queue(maxsize=3)  # Limit queue size to prevent memory buildup
+        self.status_queue = queue.Queue(maxsize=2)  # Queue for camera status updates
         self.receiver = None
         self.thread = None
         self.focus_peaking_on = False
@@ -34,10 +36,11 @@ class CameraManager:
         self.last_frame_time = 0
         self.frame_skip_count = 0
         self.current_lvqty = "0640x0480"  # Default quality
+        self.current_camera_settings = {}  # Current camera status values
 
         # Extend OlympusCamera functionality
         self._extend_camera_functionality()
-
+        
     def _extend_camera_functionality(self):
         """Add additional functionality to the OlympusCamera class."""
 
@@ -68,8 +71,8 @@ class CameraManager:
             # Start live view with specified quality
             self.camera.start_liveview(port=self.port, lvqty=lvqty)
 
-            # Start receiver in a new thread
-            self.receiver = LiveViewReceiver(self.img_queue)
+            # Start extended receiver in a new thread that also extracts camera settings
+            self.receiver = ExtendedLiveViewReceiver(self.img_queue, self.status_queue)
             self.thread = threading.Thread(target=self.receiver.receive_packets, args=[self.port])
             self.thread.daemon = True
             self.thread.start()
@@ -80,11 +83,33 @@ class CameraManager:
             self.frame_processing_thread.daemon = True
             self.frame_processing_thread.start()
 
+            # Start a status processing thread
+            self.status_processing_thread = threading.Thread(target=self._process_status_updates)
+            self.status_processing_thread.daemon = True
+            self.status_processing_thread.start()
+
             self.live_view_active = True
             return True
         except Exception as e:
             print(f"Error starting live view: {str(e)}")
             return False
+
+    def _process_status_updates(self):
+        """Background thread to process camera status updates."""
+        while self.live_view_active:
+            try:
+                # Get status updates if available
+                try:
+                    new_settings = self.status_queue.get(timeout=0.1)
+                    if new_settings:
+                        self.current_camera_settings.update(new_settings)
+                except queue.Empty:
+                    # No updates available, just continue
+                    time.sleep(0.1)
+                    continue
+            except Exception as e:
+                print(f"Error processing status updates: {str(e)}")
+                time.sleep(0.1)  # Avoid tight loop on error
 
     def _process_frames(self):
         """Background thread to process frames from the camera."""
@@ -144,6 +169,7 @@ class CameraManager:
             # Clear all queues
             self._clear_queue(self.img_queue)
             self._clear_queue(self.processed_frame_queue)
+            self._clear_queue(self.status_queue)
 
             # Stop liveview on camera
             try:
@@ -224,6 +250,13 @@ class CameraManager:
             return self.processed_frame_queue.get_nowait() if not self.processed_frame_queue.empty() else None
         except Exception:
             return None
+            
+    def get_latest_camera_settings(self):
+        """Get the latest camera settings including aperture, shutter speed, etc."""
+        if self.receiver:
+            # Try to get directly from receiver for most up-to-date info
+            return self.receiver.get_latest_camera_settings()
+        return self.current_camera_settings
 
     def get_latest_image(self, prefer_raw=True):
         """Get the most recent image from the camera. Set prefer_raw=False to always get JPEG."""

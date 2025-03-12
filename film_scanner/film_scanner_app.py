@@ -1,6 +1,6 @@
 """
-Main application module for the Film Scanner application.
-Coordinates UI, camera, and preview components with optimized performance.
+Updated main application module for the Film Scanner application.
+Adds camera status bar and real-time settings display.
 """
 import os
 import time
@@ -14,11 +14,13 @@ from .camera_manager import CameraManager
 from .preview_manager import PreviewManager
 from .image_processor import ImageProcessor
 from .frame_health_monitor import FrameHealthMonitor
+from .camera_status_bar import CameraStatusBar
 
 
 class FilmScannerApp:
     """
     Main application class that manages the UI and coordinates between components.
+    Adds support for displaying camera settings in real-time.
     """
     def __init__(self, root):
         """
@@ -49,6 +51,9 @@ class FilmScannerApp:
         self.frame_health_monitor = FrameHealthMonitor(window_size=10)  # 10-second window
         self.health_check_timer = None
         
+        # Camera settings update timer
+        self.camera_settings_timer = None
+        
         # Live view quality settings
         self.live_view_qualities = ["0320x0240", "0640x0480", "0800x0600", "1024x0768", "1280x0960"]
         self.current_quality_index = 1  # Default to 640x480
@@ -56,10 +61,23 @@ class FilmScannerApp:
         # Initialize components
         self.camera_manager = CameraManager()
         
-        # Create UI elements
+        # Create UI elements - TOP DOWN APPROACH
+        # Status bar at the very top
         self.status_bar = tk.Label(self.window, text="Ready", bd=1, relief=tk.SUNKEN, anchor=tk.W)
         self.status_bar.pack(side=tk.TOP, fill=tk.X)
         
+        # Below status bar comes our main content area
+        self.content_frame = tk.Frame(self.window)
+        self.content_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        
+        # Image frame with black background takes most of the space
+        self.image_frame = tk.Frame(self.content_frame, bg="black")
+        self.image_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        
+        # Camera status bar right below the image
+        self.camera_status_bar = CameraStatusBar(self.content_frame, height=30)
+        
+        # Information frame at the bottom
         self.info_frame = tk.Frame(self.window, height=50)
         self.info_frame.pack(side=tk.BOTTOM, fill=tk.X)
         
@@ -85,7 +103,7 @@ class FilmScannerApp:
         self.shortcut_label.pack(side=tk.RIGHT)
         
         # Initialize preview manager after UI elements
-        self.preview_manager = PreviewManager(self.window, self.status_bar, self.info_frame)
+        self.preview_manager = PreviewManager(self.image_frame, self.status_bar, self.info_frame)
         
         # Set initial window size based on current quality
         self.set_initial_window_size()
@@ -104,6 +122,9 @@ class FilmScannerApp:
         
         # Start health monitoring updates
         self.update_health_status()
+        
+        # Start camera settings updates
+        self.update_camera_settings()
 
     def set_initial_window_size(self):
         """Set initial window size based on selected quality"""
@@ -111,7 +132,7 @@ class FilmScannerApp:
         width, height = map(int, quality.split('x'))
         
         # Add some padding for UI elements
-        ui_padding_height = 100  # Status bar + info frame
+        ui_padding_height = 120  # Status bar + camera status bar + info frame
         
         # Set window size to match the live view resolution exactly without scaling
         total_height = height + ui_padding_height
@@ -123,6 +144,34 @@ class FilmScannerApp:
         x_position = int((screen_width - width) / 2)
         y_position = int((screen_height - total_height) / 2)
         self.window.geometry(f"+{x_position}+{y_position}")
+
+    def update_camera_settings(self):
+        """Update the camera status bar with current settings."""
+        try:
+            if self.current_mode == "live_view" and self.camera_manager.live_view_active:
+                # Get the latest camera settings
+                settings = self.camera_manager.get_latest_camera_settings()
+                
+                # Update the status bar
+                aperture = settings.get('aperture')
+                shutter_speed = settings.get('shutter_speed')
+                iso = settings.get('iso')
+                exposure_warning = settings.get('exposure_compensation')
+                focus_status = settings.get('focus_status')
+                
+                # Update the camera status bar
+                self.camera_status_bar.update(
+                    aperture=aperture,
+                    shutter_speed=shutter_speed,
+                    iso=iso,
+                    exposure_warning=exposure_warning,
+                    focus_status=focus_status
+                )
+        except Exception as e:
+            print(f"Error updating camera settings: {e}")
+        
+        # Schedule next update
+        self.camera_settings_timer = self.window.after(200, self.update_camera_settings)
 
     def update_status(self, message):
         """Update status bar message."""
@@ -227,12 +276,16 @@ class FilmScannerApp:
 
         # Calculate status and info bar heights
         status_bar_height = self.status_bar.winfo_reqheight()
+        camera_status_height = self.camera_status_bar.height
         info_frame_height = self.info_frame.winfo_reqheight()
+        
+        # Total UI height
+        ui_height = status_bar_height + camera_status_height + info_frame_height
 
         # Apply 5% margin to available screen space
         margin_percentage = 0.05
         available_width = int(screen_width * (1 - 2 * margin_percentage))
-        available_height = int((screen_height - status_bar_height - info_frame_height) * (1 - 2 * margin_percentage))
+        available_height = int((screen_height - ui_height) * (1 - 2 * margin_percentage))
 
         # Calculate scaling
         width_ratio = available_width / width
@@ -246,7 +299,7 @@ class FilmScannerApp:
         new_height = int(height * scale_factor)
 
         # Set window size
-        total_height = new_height + status_bar_height + info_frame_height
+        total_height = new_height + ui_height
         self.window.geometry(f"{new_width}x{total_height}")
 
         # Center the window on screen
@@ -271,6 +324,9 @@ class FilmScannerApp:
             # Reset frame health monitor when starting live view
             self.frame_health_monitor = FrameHealthMonitor(window_size=10)
             self.health_label.config(text="")
+            
+            # Show camera status bar in live view mode
+            self.camera_status_bar.frame.pack(side=tk.TOP, fill=tk.X, before=self.info_frame)
             
             return True
         else:
@@ -376,6 +432,9 @@ class FilmScannerApp:
 
             # Resize window based on image size
             self.resize_window_for_image(image.width, image.height)
+
+            # Hide camera status bar in preview mode
+            self.camera_status_bar.frame.pack_forget()
 
             # Display the image (scaling is ok for preview mode)
             self.preview_manager.display_image(image, scale=True)
