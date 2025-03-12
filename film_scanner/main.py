@@ -6,6 +6,7 @@ import sys
 import tkinter as tk
 from film_scanner.film_scanner_app import FilmScannerApp
 from film_scanner.image_processor import ImageProcessor
+from film_scanner.frame_health_monitor import FrameHealthMonitor
 
 
 def main():
@@ -54,6 +55,11 @@ def main():
             try:
                 ImageProcessor.clear_cache()  # Clear any image caches
                 app.camera_manager.stop_live_view()  # Stop camera connection
+                
+                # Cancel any pending timers
+                if app.health_check_timer is not None:
+                    root.after_cancel(app.health_check_timer)
+                    
                 root.destroy()
                 sys.exit(0)
             except Exception as e:

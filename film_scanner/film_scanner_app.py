@@ -9,9 +9,11 @@ import tkinter as tk
 import tkinter.messagebox
 from PIL import Image
 import io
+import traceback
 from .camera_manager import CameraManager
 from .preview_manager import PreviewManager
 from .image_processor import ImageProcessor
+from .frame_health_monitor import FrameHealthMonitor
 
 
 class FilmScannerApp:
@@ -43,6 +45,14 @@ class FilmScannerApp:
         self.fps = 0
         self.show_fps = True  # Set to False to hide FPS display
         
+        # Frame health monitoring
+        self.frame_health_monitor = FrameHealthMonitor(window_size=10)  # 10-second window
+        self.health_check_timer = None
+        
+        # Live view quality settings
+        self.live_view_qualities = ["0320x0240", "0640x0480", "0800x0600", "1024x0768", "1280x0960"]
+        self.current_quality_index = 1  # Default to 640x480
+        
         # Initialize components
         self.camera_manager = CameraManager()
         
@@ -56,13 +66,19 @@ class FilmScannerApp:
         self.info_label = tk.Label(self.info_frame, text="Live View", anchor=tk.W, padx=10)
         self.info_label.pack(side=tk.LEFT)
         
+        self.quality_label = tk.Label(self.info_frame, text=self.live_view_qualities[self.current_quality_index], anchor=tk.W, padx=10)
+        self.quality_label.pack(side=tk.LEFT)
+        
         self.fps_label = tk.Label(self.info_frame, text="0 FPS", anchor=tk.W, padx=10)
         if self.show_fps:
             self.fps_label.pack(side=tk.LEFT)
         
+        self.health_label = tk.Label(self.info_frame, text="", fg="red", anchor=tk.W, padx=10)
+        self.health_label.pack(side=tk.LEFT)
+        
         self.shortcut_label = tk.Label(
             self.info_frame, 
-            text="S: Shoot | F: Focus Peaking | I: Invert | ESC: Quit | ?: Help", 
+            text="S: Shoot | F: Focus Peaking | P: Quality | I: Invert | ESC: Quit | ?: Help", 
             anchor=tk.E, 
             padx=10
         )
@@ -71,8 +87,8 @@ class FilmScannerApp:
         # Initialize preview manager after UI elements
         self.preview_manager = PreviewManager(self.window, self.status_bar, self.info_frame)
         
-        # Set initial window size
-        self.window.geometry("800x600")
+        # Set initial window size based on current quality
+        self.set_initial_window_size()
         
         # Bind keyboard shortcuts
         self.bind_keys()
@@ -85,11 +101,55 @@ class FilmScannerApp:
         
         # Start checking for frame updates
         self.window.after(16, self.check_live_view_updates)  # ~60 FPS target
+        
+        # Start health monitoring updates
+        self.update_health_status()
+
+    def set_initial_window_size(self):
+        """Set initial window size based on selected quality"""
+        quality = self.live_view_qualities[self.current_quality_index]
+        width, height = map(int, quality.split('x'))
+        
+        # Add some padding for UI elements
+        ui_padding_height = 100  # Status bar + info frame
+        
+        # Set window size to match the live view resolution exactly without scaling
+        total_height = height + ui_padding_height
+        self.window.geometry(f"{width}x{total_height}")
+        
+        # Center the window on screen
+        screen_width = self.window.winfo_screenwidth()
+        screen_height = self.window.winfo_screenheight()
+        x_position = int((screen_width - width) / 2)
+        y_position = int((screen_height - total_height) / 2)
+        self.window.geometry(f"+{x_position}+{y_position}")
 
     def update_status(self, message):
         """Update status bar message."""
         self.status_bar.config(text=message)
         self.window.update_idletasks()  # Force GUI update
+
+    def update_health_status(self):
+        """Update the health status display."""
+        if self.current_mode == "live_view":
+            # Get current health status message
+            health_message = self.frame_health_monitor.get_status_message()
+            
+            # Only update UI if there's a change to avoid unnecessary updates
+            if health_message != self.health_label.cget("text"):
+                self.health_label.config(text=health_message)
+                
+                # Set color based on status
+                status, _, _, _ = self.frame_health_monitor.get_health_status()
+                if status == "warning":
+                    self.health_label.config(fg="orange")
+                elif status == "critical":
+                    self.health_label.config(fg="red")
+                else:
+                    self.health_label.config(fg="black")
+        
+        # Schedule next update (less frequent than frame updates)
+        self.health_check_timer = self.window.after(1000, self.update_health_status)
 
     def show_instructions(self):
         """Show application instructions."""
@@ -98,6 +158,7 @@ class FilmScannerApp:
         
         S         - Take photo when in live view / Accept and download when in preview
         F         - Toggle focus peaking
+        P         - Cycle through live view quality settings
         ESCAPE    - Quit the application
         R         - Reject preview and return to live view
         I         - Invert image colors (helpful for negative film)
@@ -112,7 +173,8 @@ class FilmScannerApp:
         self.window.bind("S", self.shoot_key_pressed)
         self.window.bind("f", self.toggle_focus_peaking)
         self.window.bind("F", self.toggle_focus_peaking)
-        # Removed zoom keybinding since it's not implemented as needed
+        self.window.bind("p", self.cycle_live_view_quality)
+        self.window.bind("P", self.cycle_live_view_quality)
         self.window.bind("<Escape>", lambda e: self.window.quit())
         self.window.bind("r", self.reject_preview)
         self.window.bind("R", self.reject_preview)
@@ -121,6 +183,35 @@ class FilmScannerApp:
         self.window.bind("?", lambda e: self.show_instructions())
         self.window.bind("i", self.toggle_image_inversion)
         self.window.bind("I", self.toggle_image_inversion)
+
+    def cycle_live_view_quality(self, event=None):
+        """Cycle through available live view quality settings."""
+        if self.current_mode != "live_view":
+            return
+        
+        # Stop the current live view
+        self.camera_manager.stop_live_view()
+        
+        # Cycle to the next quality setting
+        self.current_quality_index = (self.current_quality_index + 1) % len(self.live_view_qualities)
+        new_quality = self.live_view_qualities[self.current_quality_index]
+        
+        # Update the quality label
+        self.quality_label.config(text=new_quality)
+        
+        # Update window size to match the new quality
+        self.set_initial_window_size()
+        
+        # Reset frame health monitor when changing resolution
+        self.frame_health_monitor = FrameHealthMonitor(window_size=10)
+        self.health_label.config(text="")
+        
+        # Restart live view with the new quality
+        self.update_status(f"Changing live view quality to {new_quality}...")
+        
+        # Start live view with the new quality
+        self.camera_manager.start_live_view(lvqty=new_quality)
+        self.update_status(f"Live view active ({new_quality}) - Press S to take a photo")
 
     def resize_window_for_image(self, width, height):
         """
@@ -171,10 +262,16 @@ class FilmScannerApp:
             bool: Success or failure
         """
         self.update_status("Starting live view...")
-        if self.camera_manager.start_live_view():
+        current_quality = self.live_view_qualities[self.current_quality_index]
+        if self.camera_manager.start_live_view(lvqty=current_quality):
             self.current_mode = "live_view"
-            self.update_status("Live view active - Press S to take a photo")
+            self.update_status(f"Live view active ({current_quality}) - Press S to take a photo")
             self.info_label.config(text="Live View")
+            
+            # Reset frame health monitor when starting live view
+            self.frame_health_monitor = FrameHealthMonitor(window_size=10)
+            self.health_label.config(text="")
+            
             return True
         else:
             self.update_status("Failed to start live view")
@@ -197,26 +294,42 @@ class FilmScannerApp:
         try:
             if self.current_mode == "live_view" and self.camera_manager.live_view_active:
                 frame = self.camera_manager.get_next_live_frame()
+                
+                # Record a frame attempt in the health monitor
+                frame_had_error = False
+                
                 if frame:
-                    # Resize window on first frame
-                    if self.preview_manager.current_image_tk is None:
-                        self.resize_window_for_image(frame.width, frame.height)
+                    try:
+                        # Display the frame without scaling (at native resolution)
+                        self.preview_manager.display_image(frame, self.preview_manager.is_inverted, scale=False)
 
-                    # Display the frame
-                    self.preview_manager.display_image(frame, self.preview_manager.is_inverted)
+                        # Force a complete UI update
+                        self.window.update()
 
-                    # Force a complete UI update
-                    self.window.update()
-
-                    # Update FPS counter
-                    self.frame_count += 1
-                    self.update_fps_display()
+                        # Update FPS counter
+                        self.frame_count += 1
+                        self.update_fps_display()
+                        
+                    except Exception as e:
+                        # Record the error
+                        frame_had_error = True
+                        if "broken data stream" in str(e):
+                            # This is a common error with high-res streams, just record it
+                            pass
+                        else:
+                            # For other errors, print the details
+                            print(f"Error displaying frame: {str(e)}")
+                            traceback.print_exc()
+                
+                # Update the health monitor (whether we got a frame or not)
+                self.frame_health_monitor.record_frame(had_error=frame_had_error)
 
             # Always schedule the next check
             self.window.after(16, self.check_live_view_updates)
 
         except Exception as e:
             print(f"Error in check_live_view_updates: {e}")
+            traceback.print_exc()
             # Make sure we keep checking even if there's an error
             self.window.after(100, self.check_live_view_updates)
 
@@ -264,12 +377,15 @@ class FilmScannerApp:
             # Resize window based on image size
             self.resize_window_for_image(image.width, image.height)
 
-            # Display the image
-            self.preview_manager.display_image(image)
+            # Display the image (scaling is ok for preview mode)
+            self.preview_manager.display_image(image, scale=True)
 
             # Update info
             self.update_status("Preview - S to accept and download, R to reject")
             self.info_label.config(text=f"Preview: {os.path.basename(image_path)}")
+            
+            # Clear health status when in preview mode
+            self.health_label.config(text="")
         else:
             self.update_status("Failed to load preview")
             # Restart live view
@@ -283,8 +399,6 @@ class FilmScannerApp:
         if self.camera_manager.toggle_focus_peaking():
             status = "enabled" if self.camera_manager.focus_peaking_on else "disabled"
             self.update_status(f"Focus peaking {status}")
-    
-    # Removing zoom method as it's not applicable to our use case
     
     def toggle_image_inversion(self, event=None):
         """Toggle image color inversion."""

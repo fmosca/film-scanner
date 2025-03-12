@@ -6,6 +6,7 @@ import queue
 import threading
 import io
 import time
+import random
 import requests
 from PIL import Image
 from olympuswifi.camera import OlympusCamera
@@ -32,6 +33,7 @@ class CameraManager:
         self.processed_frame_queue = queue.Queue(maxsize=2)  # Queue for processed frames
         self.last_frame_time = 0
         self.frame_skip_count = 0
+        self.current_lvqty = "0640x0480"  # Default quality
 
         # Extend OlympusCamera functionality
         self._extend_camera_functionality()
@@ -52,9 +54,18 @@ class CameraManager:
     def start_live_view(self, lvqty="0640x0480"):
         """Start the camera's live view streaming with optimized frame handling."""
         if self.live_view_active:
-            return True
+            self.stop_live_view()  # Make sure to stop any existing live view
+            time.sleep(0.5)  # Give time for resources to be released
 
         try:
+            # Generate a random port number in the allowed range to avoid conflicts
+            # This helps avoid the "Address already in use" error
+            self.port = random.randint(40000, 50000)
+
+            # Store the current quality setting
+            self.current_lvqty = lvqty
+
+            # Start live view with specified quality
             self.camera.start_liveview(port=self.port, lvqty=lvqty)
 
             # Start receiver in a new thread
@@ -85,28 +96,28 @@ class CameraManager:
                 except queue.Empty:
                     # No frames available, continue waiting
                     continue
-                
+
                 # Process the frame (convert to PIL Image)
                 if frame and frame.jpeg:
                     try:
                         image = Image.open(io.BytesIO(frame.jpeg))
-                        
+
                         # If queue is full, make space
                         if self.processed_frame_queue.full():
                             try:
                                 self.processed_frame_queue.get_nowait()
                             except queue.Empty:
                                 pass
-                                
+
                         # Add to processed queue
                         self.processed_frame_queue.put(image)
-                        
+
                         # Update tracking stats
                         current_time = time.time()
                         self.last_frame_time = current_time
                     except Exception as e:
                         print(f"Error processing frame: {e}")
-                
+
             except Exception as e:
                 print(f"Error in frame processing loop: {str(e)}")
                 time.sleep(0.1)  # Avoid spinning too fast on errors
@@ -121,20 +132,35 @@ class CameraManager:
             self.frame_processing_active = False
             if self.frame_processing_thread and self.frame_processing_thread.is_alive():
                 self.frame_processing_thread.join(timeout=1.0)
-            
+
             # Then stop the receiver
             if self.receiver:
                 self.receiver.shut_down()
-                
+                self.receiver = None  # Clear the receiver reference
+
+            # Clear thread
+            self.thread = None
+
             # Clear all queues
             self._clear_queue(self.img_queue)
             self._clear_queue(self.processed_frame_queue)
-                
-            self.camera.stop_liveview()
+
+            # Stop liveview on camera
+            try:
+                self.camera.stop_liveview()
+            except Exception as e:
+                print(f"Warning: Error while stopping camera liveview: {e}")
+
+            # Mark as inactive
             self.live_view_active = False
+
+            # Wait a moment to ensure all resources are released
+            time.sleep(0.1)
+
             return True
         except Exception as e:
             print(f"Error stopping live view: {str(e)}")
+            self.live_view_active = False  # Force it to false even on error
             return False
 
     def _clear_queue(self, q):
@@ -190,13 +216,6 @@ class CameraManager:
             print(f"Error toggling focus peaking: {str(e)}")
             return False
 
-    # Removing the zoom functionality as it's not supported via the API in the way we thought
-    # The zoom implementation was based on a misunderstanding of the camera's capabilities
-    def cycle_zoom(self):
-        """This function is deprecated as we're not implementing software zoom."""
-        print("Zoom functionality not supported via API as needed")
-        return False, None
-
     def get_next_live_frame(self):
         """Get the next processed frame for display."""
         try:
@@ -241,7 +260,7 @@ class CameraManager:
                 return selected_image.file_name, image_data
             except Exception as e:
                 print(f"Failed to download screennail, falling back to alternatives: {e}")
-                
+
                 # Fall back to thumbnail if screennail fails
                 try:
                     image_data = self.camera.download_thumbnail(selected_image.file_name)
@@ -249,7 +268,7 @@ class CameraManager:
                     return selected_image.file_name, image_data
                 except Exception as e:
                     print(f"Failed to download thumbnail, falling back to full image: {e}")
-                    
+
                     # Last resort, try full image
                     try:
                         image_data = self.camera.download_image(selected_image.file_name)
@@ -257,9 +276,9 @@ class CameraManager:
                         return selected_image.file_name, image_data
                     except Exception as e:
                         print(f"Failed to download image: {e}")
-                
+
             raise Exception("Could not download image preview")
-            
+
         except Exception as e:
             print(f"Error getting latest image: {str(e)}")
             return None, None
