@@ -90,7 +90,7 @@ class FilmScannerApp:
         """Update status bar message."""
         self.status_bar.config(text=message)
         self.window.update_idletasks()  # Force GUI update
-    
+
     def show_instructions(self):
         """Show application instructions."""
         instructions = """
@@ -105,7 +105,7 @@ class FilmScannerApp:
         """
         self.update_status("Ready - Press S to take a photo")
         tk.messagebox.showinfo("Instructions", instructions)
-    
+
     def bind_keys(self):
         """Bind keyboard shortcuts to functions."""
         self.window.bind("s", self.shoot_key_pressed)
@@ -121,11 +121,11 @@ class FilmScannerApp:
         self.window.bind("?", lambda e: self.show_instructions())
         self.window.bind("i", self.toggle_image_inversion)
         self.window.bind("I", self.toggle_image_inversion)
-    
+
     def resize_window_for_image(self, width, height):
         """
         Resize window to fit an image with specified dimensions.
-        
+
         Args:
             width: Image width
             height: Image height
@@ -133,40 +133,40 @@ class FilmScannerApp:
         # Get screen dimensions
         screen_width = self.window.winfo_screenwidth()
         screen_height = self.window.winfo_screenheight()
-        
+
         # Calculate status and info bar heights
         status_bar_height = self.status_bar.winfo_reqheight()
         info_frame_height = self.info_frame.winfo_reqheight()
-        
+
         # Apply 5% margin to available screen space
         margin_percentage = 0.05
         available_width = int(screen_width * (1 - 2 * margin_percentage))
         available_height = int((screen_height - status_bar_height - info_frame_height) * (1 - 2 * margin_percentage))
-        
+
         # Calculate scaling
         width_ratio = available_width / width
         height_ratio = available_height / height
-        
+
         # Use the smaller scaling to fit entirely on screen
         scale_factor = min(width_ratio, height_ratio)
-        
+
         # Calculate new dimensions
         new_width = int(width * scale_factor)
         new_height = int(height * scale_factor)
-        
+
         # Set window size
         total_height = new_height + status_bar_height + info_frame_height
         self.window.geometry(f"{new_width}x{total_height}")
-        
+
         # Center the window on screen
         x_position = int((screen_width - new_width) / 2)
         y_position = int((screen_height - total_height) / 2)
         self.window.geometry(f"+{x_position}+{y_position}")
-    
+
     def start_live_view(self):
         """
         Start the live view streaming.
-        
+
         Returns:
             bool: Success or failure
         """
@@ -179,19 +179,19 @@ class FilmScannerApp:
         else:
             self.update_status("Failed to start live view")
             return False
-    
+
     def update_fps_display(self):
         """Update the FPS counter display"""
         current_time = time.time()
         elapsed = current_time - self.last_fps_check_time
-        
+
         # Update FPS calculation every second
         if elapsed >= 1.0:
             self.fps = self.frame_count / elapsed
             self.fps_label.config(text=f"{self.fps:.1f} FPS")
             self.frame_count = 0
             self.last_fps_check_time = current_time
-    
+
     def check_live_view_updates(self):
         """Check for new frames in the live view queue and update display."""
         try:
@@ -201,22 +201,25 @@ class FilmScannerApp:
                     # Resize window on first frame
                     if self.preview_manager.current_image_tk is None:
                         self.resize_window_for_image(frame.width, frame.height)
-                    
+
                     # Always display the frame - we shouldn't be dropping frames
                     self.preview_manager.display_image(frame)
-                    
+
+                    # Force the UI to update immediately
+                    self.window.update_idletasks()
+
                     # Update FPS counter
                     self.frame_count += 1
                     self.update_fps_display()
-            
+
             # Always check for frames frequently (50-60fps)
             self.window.after(16, self.check_live_view_updates)
-            
+
         except Exception as e:
             print(f"Error in check_live_view_updates: {e}")
             # Make sure we keep checking even if there's an error
             self.window.after(100, self.check_live_view_updates)
-    
+
     def shoot_key_pressed(self, event=None):
         """Handle the 'S' key press based on current mode."""
         if self.current_mode == "live_view":

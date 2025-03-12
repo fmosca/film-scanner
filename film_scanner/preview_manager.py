@@ -119,12 +119,14 @@ class PreviewManager:
             try:
                 self.current_image_tk = ImageTk.PhotoImage(processed_image)
                 self.image_label.config(image=self.current_image_tk)
+                self.parent.update_idletasks()  # Force UI refresh for each new frame
                 return True
             except Exception as e:
                 print(f"Error creating PhotoImage: {e}")
                 # Fall back to slower conversion method
                 self.current_image_tk = tk.PhotoImage(data=processed_image.tobytes())
                 self.image_label.config(image=self.current_image_tk)
+                self.parent.update_idletasks()  # Also force refresh for the fallback method
                 return True
                 
         except Exception as e:
