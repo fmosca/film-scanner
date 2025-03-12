@@ -133,11 +133,13 @@ class RtpPacketParser:
             if numerator == 0 or denominator == 0:
                 return {'shutter_speed': '---'}
             
-            print(f"Shutter speed raw: {numerator}/{denominator}")    
+            # Debug print to see raw values
+            print(f"Shutter speed raw: {numerator}/{denominator}")
+                
             # Format the shutter speed display
             if numerator > denominator:
                 # Longer than 1 second (e.g., 2")
-                seconds = numerator / denominator
+                seconds = float(numerator) / float(denominator)
                 if denominator == 1:
                     formatted = f"{numerator}\""
                 else:
@@ -145,7 +147,7 @@ class RtpPacketParser:
             else:
                 # Fraction of a second (e.g., 1/60)
                 if numerator == 1:
-                    formatted = f"1/{denominator}"
+                    formatted = f"1/{int(denominator)}"
                 else:
                     fraction = denominator / numerator
                     formatted = f"1/{fraction:.1f}"

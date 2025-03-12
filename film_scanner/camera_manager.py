@@ -37,6 +37,9 @@ class CameraManager:
         self.frame_skip_count = 0
         self.current_lvqty = "0640x0480"  # Default quality
         self.current_camera_settings = {}  # Current camera status values
+        
+        # Debug storage for raw RTP extension data
+        self.last_rtp_extension_data = None
 
         # Extend OlympusCamera functionality
         self._extend_camera_functionality()
@@ -260,9 +263,33 @@ class CameraManager:
     def get_latest_camera_settings(self):
         """Get the latest camera settings including aperture, shutter speed, etc."""
         if self.receiver:
-            # Try to get directly from receiver for most up-to-date info
-            return self.receiver.get_latest_camera_settings()
+            settings = self.receiver.get_latest_camera_settings()
+            
+            # Also get raw RTP data for debugging if available
+            raw_data = getattr(self.receiver, 'last_rtp_extension_data', None)
+            if raw_data:
+                self.last_rtp_extension_data = raw_data
+                
+            # Check specifically for shutter speed info from raw data
+            if self.last_rtp_extension_data:
+                self._debug_rtp_data(self.last_rtp_extension_data)
+            
+            return settings
         return self.current_camera_settings
+
+    def _debug_rtp_data(self, extension_data):
+        """Extract and print raw values from RTP extension data for debugging."""
+        try:
+            # Look for shutter speed data (function ID 0x08)
+            position = 4  # Start after header
+            while position + 4 <= len(extension_data):
+                function_id, field_length = struct.unpack('>HH', extension_data[position:position+4])
+                if function_id == 0x08 and position + 16 <= len(extension_data):
+                    raw_data = extension_data[position+4:position+20]
+                    print(f"RAW SHUTTER SPEED DATA (bytes): {' '.join([f'{b:02x}' for b in raw_data])}")
+                position += 4 + field_length * 4
+        except Exception as e:
+            print(f"Error debugging RTP data: {e}")
 
     def get_latest_image(self, prefer_raw=True):
         """Get the most recent image from the camera. Set prefer_raw=False to always get JPEG."""

@@ -57,6 +57,8 @@ class FilmScannerApp:
         # Live view quality settings
         self.live_view_qualities = ["0320x0240", "0640x0480", "0800x0600", "1024x0768", "1280x0960"]
         self.current_quality_index = 1  # Default to 640x480
+
+        self.camera_modes = ["rec", "play", "shutter"]
         
         # Initialize components
         self.camera_manager = CameraManager()
@@ -159,6 +161,9 @@ class FilmScannerApp:
                 exposure_warning = settings.get('exposure_compensation')
                 focus_status = settings.get('focus_status')
                 
+                # Print settings for debugging
+                print(f"Camera settings: AP={aperture}, SS={shutter_speed}, ISO={iso}, EXP={exposure_warning}")
+                
                 # Update the camera status bar
                 self.camera_status_bar.update(
                     aperture=aperture,
@@ -233,6 +238,16 @@ class FilmScannerApp:
         self.window.bind("i", self.toggle_image_inversion)
         self.window.bind("I", self.toggle_image_inversion)
 
+        # Number keys for switching camera modes
+        self.window.bind("1", lambda e: self.switch_camera_mode("rec"))
+        self.window.bind("2", lambda e: self.switch_camera_mode("play"))
+        self.window.bind("3", lambda e: self.switch_camera_mode("shutter"))
+
+        # Add key to see debug info
+        self.window.bind("d", self.toggle_debug_info)
+        self.window.bind("D", self.toggle_debug_info)
+
+
     def cycle_live_view_quality(self, event=None):
         """Cycle through available live view quality settings."""
         if self.current_mode != "live_view":
@@ -261,6 +276,47 @@ class FilmScannerApp:
         # Start live view with the new quality
         self.camera_manager.start_live_view(lvqty=new_quality)
         self.update_status(f"Live view active ({new_quality}) - Press S to take a photo")
+
+
+    def switch_camera_mode(self, mode):
+        """Switch the camera to the specified mode."""
+        if mode not in self.camera_modes:
+            return
+
+        # Stop live view first
+        was_live_view_active = self.camera_manager.live_view_active
+        if was_live_view_active:
+            self.camera_manager.stop_live_view()
+
+        self.update_status(f"Switching to {mode} mode...")
+
+        # Switch mode using the camera's API
+        try:
+            result = self.camera_manager.camera.send_command('switch_cammode', mode=mode)
+            if result:
+                self.update_status(f"Camera is now in {mode} mode - Press 1 to return to recording mode")
+
+                # If we were in live view, restart it if going back to rec mode
+                if was_live_view_active and mode == "rec":
+                    time.sleep(0.5)  # Give the camera time to switch
+                    self.start_live_view()
+            else:
+                self.update_status(f"Failed to switch to {mode} mode")
+                if was_live_view_active:
+                    self.start_live_view()
+        except Exception as e:
+            self.update_status(f"Error switching mode: {str(e)}")
+            if was_live_view_active:
+                self.start_live_view()
+
+    def toggle_debug_info(self, event=None):
+        """Toggle display of debug information including raw camera settings."""
+        try:
+            settings = self.camera_manager.get_latest_camera_settings()
+            print(f"All camera settings: {settings}")
+            self.update_status(f"Debug info printed to console: {len(settings)} values")
+        except Exception as e:
+            print(f"Error getting debug info: {e}")
 
     def resize_window_for_image(self, width, height):
         """
