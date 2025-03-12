@@ -7,7 +7,7 @@ import time
 import threading
 import struct
 import queue
-from olympuswifi.liveview import LiveViewFrame
+from olympuswifi.liveview import LiveViewReceiver
 from film_scanner.rtp_packet_parser import RtpPacketParser
 
 
@@ -206,8 +206,8 @@ class ExtendedLiveViewReceiver:
             # Check if we have a complete JPEG (ends with 0xFF, 0xD9)
             if len(frame_data) >= 2 and frame_data[-2] == 0xFF and frame_data[-1] == 0xD9:
                 # Create a frame object
-                frame = LiveViewFrame(bytes(frame_data))
-                
+                frame = LiveViewReceiver.JPEGandExtension(bytes(frame_data), None)
+
                 # Add to queue, avoiding blocking
                 try:
                     if self.img_queue.full():

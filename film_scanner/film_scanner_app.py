@@ -75,7 +75,7 @@ class FilmScannerApp:
         self.image_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         
         # Camera status bar right below the image
-        self.camera_status_bar = CameraStatusBar(self.content_frame, height=30)
+        self.camera_status_bar = CameraStatusBar(self.window, height=30)
         
         # Information frame at the bottom
         self.info_frame = tk.Frame(self.window, height=50)
@@ -326,7 +326,7 @@ class FilmScannerApp:
             self.health_label.config(text="")
             
             # Show camera status bar in live view mode
-            self.camera_status_bar.frame.pack(side=tk.TOP, fill=tk.X, before=self.info_frame)
+            self.camera_status_bar.frame.pack(side=tk.TOP, fill=tk.X)
             
             return True
         else:

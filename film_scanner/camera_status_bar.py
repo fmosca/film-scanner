@@ -134,7 +134,7 @@ class CameraStatusBar:
         try:
             if self.font_path:
                 # Try to use system monospace font
-                font = ImageFont.truetype(self.font_path, 14)
+                font = ImageFont.truetype(self.font_path, 18)
             else:
                 # Fall back to default
                 font = ImageFont.load_default()
@@ -142,11 +142,14 @@ class CameraStatusBar:
             # Ultimate fallback
             font = ImageFont.load_default()
             
+        # For default font, we need to ensure it's rendered larger
+        if font == ImageFont.load_default():
+            font = ImageFont.load_default().font_variant(size=16)
+            
         # Calculate positions (divide width into sections)
         width = self.canvas_width
         padding = 10
         section_width = (width - (padding * 2)) / 4
-            
         # Draw the status information
         # ISO (left)
         draw.text((padding, 5), self.iso, fill=self.text_color, font=font)

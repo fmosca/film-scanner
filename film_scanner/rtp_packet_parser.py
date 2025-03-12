@@ -118,11 +118,22 @@ class RtpPacketParser:
         """Parse shutter speed information (3 words, 12 bytes)"""
         try:
             # Format: numerator/denominator for current value (bytes 8-15)
-            numerator, denominator = struct.unpack('>II', data[4:12])
+            if len(data) < 12:
+                return {'shutter_speed': '---'}
+                
+            # Try different offsets for shutter speed data
+            try:
+                numerator, denominator = struct.unpack('>II', data[8:16])
+            except struct.error:
+                try:
+                    numerator, denominator = struct.unpack('>II', data[4:12])
+                except struct.error:
+                    return {'shutter_speed': '---'}
             
             if numerator == 0 or denominator == 0:
-                return {'shutter_speed': '--"'}
-                
+                return {'shutter_speed': '---'}
+            
+            print(f"Shutter speed raw: {numerator}/{denominator}")    
             # Format the shutter speed display
             if numerator > denominator:
                 # Longer than 1 second (e.g., 2")
@@ -141,7 +152,7 @@ class RtpPacketParser:
                     
             return {'shutter_speed': formatted}
         except Exception:
-            return {'shutter_speed': '--"'}
+            return {'shutter_speed': '---'}
     
     def _parse_aperture(self, data):
         """Parse aperture (F-number) information (3 words, 12 bytes)"""

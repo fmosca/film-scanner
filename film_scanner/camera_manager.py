@@ -247,7 +247,13 @@ class CameraManager:
         try:
             # Try to get a processed frame with minimal wait time
             # This is non-blocking to keep the UI responsive
-            return self.processed_frame_queue.get_nowait() if not self.processed_frame_queue.empty() else None
+            if not self.processed_frame_queue.empty():
+                frame = self.processed_frame_queue.get_nowait()
+                # Convert to PIL Image if it's not already
+                if not isinstance(frame, Image.Image) and hasattr(frame, 'jpeg'):
+                    return Image.open(io.BytesIO(frame.jpeg))
+                return frame
+            return None
         except Exception:
             return None
             
