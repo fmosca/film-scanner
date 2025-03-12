@@ -113,49 +113,55 @@ class RtpPacketParser:
         except Exception as e:
             print(f"Error parsing RTP extension header: {e}")
             return {}
-    
+
     def _parse_shutter_speed(self, data):
-        """Parse shutter speed information (3 words, 12 bytes)"""
+        """
+        Debug-enhanced shutter speed parsing method.
+
+        Dumps all potential parsing combinations and raw byte values.
+        """
         try:
-            # Format: numerator/denominator for current value (bytes 8-15)
+            # Validate minimum data length
             if len(data) < 12:
+                print("Insufficient data length for parsing")
                 return {'shutter_speed': '---'}
-                
-            # Try different offsets for shutter speed data
+
+            group = data[8:8+12]
+
             try:
-                numerator, denominator = struct.unpack('>II', data[8:16])
-            except struct.error:
-                try:
-                    numerator, denominator = struct.unpack('>II', data[4:12])
-                except struct.error:
-                    return {'shutter_speed': '---'}
-            
-            if numerator == 0 or denominator == 0:
-                return {'shutter_speed': '---'}
-            
-            # Debug print to see raw values
-            print(f"Shutter speed raw: {numerator}/{denominator}")
-                
-            # Format the shutter speed display
-            if numerator > denominator:
-                # Longer than 1 second (e.g., 2")
-                seconds = float(numerator) / float(denominator)
-                if denominator == 1:
-                    formatted = f"{numerator}\""
+                values = struct.unpack('>HH', group[:struct.calcsize('>HH')])
+                print(f"16bit Unsigned Int values:", values)
+                numerator, denominator = values
+                """
+                currentShutterSpeed = if (numerator > denominator) {
+                        // 分子が大きい
+                        if (denominator == 1)  { String.format("%d\"", numerator) } else { String.format("%.1f\"", (numerator.toFloat() / denominator.toFloat())) }
+                    } else {
+                        // 分母が大きい
+                        if (numerator == 1) { String.format("%d/%d", numerator, denominator) } else {String.format("1/%.1f", (denominator.toFloat() / numerator.toFloat())) }
+                    }
+                """
+                if numerator > denominator:
+                    if denominator == 1:
+                       formatted = f"{numerator}\""
+                    else:
+                        seconds = float(numerator) / float(denominator)
+                        formatted = f"{seconds:.1f}\""
                 else:
-                    formatted = f"{seconds:.1f}\""
-            else:
-                # Fraction of a second (e.g., 1/60)
-                if numerator == 1:
-                    formatted = f"1/{int(denominator)}"
-                else:
-                    fraction = denominator / numerator
-                    formatted = f"1/{fraction:.1f}"
-                    
-            return {'shutter_speed': formatted}
-        except Exception:
+                    if numerator == 1:
+                        formatted = f"{int(numerator)}/{int(denominator)}\""
+                    else:
+                        formatted = f"1/{float(denominator)/float(numerator):.1f}\""
+
+                return {'shutter_speed': formatted}
+
+            except struct.error as e:
+                print(f"Strategy {i} failed: {e}")
+
+        except Exception as e:
+            print(f"Unexpected error in shutter speed parsing: {e}")
             return {'shutter_speed': '---'}
-    
+
     def _parse_aperture(self, data):
         """Parse aperture (F-number) information (3 words, 12 bytes)"""
         try:
