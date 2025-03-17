@@ -24,4 +24,4 @@ env/
 *.sqlite3
 
 # Sensitive information (if any)
-secrets.json
+camera_output/

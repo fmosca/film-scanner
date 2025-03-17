@@ -297,7 +297,7 @@ class FilmScannerApp:
                 self.update_status(f"Camera is now in {mode} mode - Press 1 to return to recording mode")
 
                 # If we were in live view, restart it if going back to rec mode
-                if was_live_view_active and mode == "rec":
+                if mode == "rec":
                     time.sleep(0.5)  # Give the camera time to switch
                     self.start_live_view()
             else:
