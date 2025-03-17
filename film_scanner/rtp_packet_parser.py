@@ -130,7 +130,6 @@ class RtpPacketParser:
 
             try:
                 values = struct.unpack('>HH', group[:struct.calcsize('>HH')])
-                print(f"16bit Unsigned Int values:", values)
                 numerator, denominator = values
                 """
                 currentShutterSpeed = if (numerator > denominator) {

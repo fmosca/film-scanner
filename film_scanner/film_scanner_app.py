@@ -161,9 +161,6 @@ class FilmScannerApp:
                 exposure_warning = settings.get('exposure_compensation')
                 focus_status = settings.get('focus_status')
                 
-                # Print settings for debugging
-                print(f"Camera settings: AP={aperture}, SS={shutter_speed}, ISO={iso}, EXP={exposure_warning}")
-                
                 # Update the camera status bar
                 self.camera_status_bar.update(
                     aperture=aperture,
@@ -224,19 +221,13 @@ class FilmScannerApp:
     def bind_keys(self):
         """Bind keyboard shortcuts to functions."""
         self.window.bind("s", self.shoot_key_pressed)
-        self.window.bind("S", self.shoot_key_pressed)
         self.window.bind("f", self.toggle_focus_peaking)
-        self.window.bind("F", self.toggle_focus_peaking)
         self.window.bind("p", self.cycle_live_view_quality)
-        self.window.bind("P", self.cycle_live_view_quality)
         self.window.bind("<Escape>", lambda e: self.window.quit())
         self.window.bind("r", self.reject_preview)
-        self.window.bind("R", self.reject_preview)
         self.window.bind("h", lambda e: self.show_instructions())
-        self.window.bind("H", lambda e: self.show_instructions())
         self.window.bind("?", lambda e: self.show_instructions())
         self.window.bind("i", self.toggle_image_inversion)
-        self.window.bind("I", self.toggle_image_inversion)
 
         # Number keys for switching camera modes
         self.window.bind("1", lambda e: self.switch_camera_mode("rec"))
@@ -245,7 +236,6 @@ class FilmScannerApp:
 
         # Add key to see debug info
         self.window.bind("d", self.toggle_debug_info)
-        self.window.bind("D", self.toggle_debug_info)
 
 
     def cycle_live_view_quality(self, event=None):
