@@ -1,6 +1,6 @@
 """
 Camera status bar component for the Film Scanner application.
-Displays real-time camera settings in style of professional camera viewfinders.
+Displays real-time camera settings in the style of a professional camera viewfinder.
 """
 import tkinter as tk
 from PIL import Image, ImageTk, ImageDraw, ImageFont
@@ -32,7 +32,7 @@ class CameraStatusBar:
         
         # Status values
         self.aperture = "F--"
-        self.shutter_speed = "--\"" 
+        self.shutter_speed = "--\""
         self.iso = "ISO --"
         self.exposure_warning = ""  # Over/under exposure indicator
         self.focus_status = ""      # Focus confirmation

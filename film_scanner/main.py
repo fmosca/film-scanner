@@ -1,12 +1,11 @@
 """
-Entry point for the Film Negative Scanner application.
+Entry point for the Film Scanner application.
 """
 import os
 import sys
 import tkinter as tk
-from film_scanner.film_scanner_app import FilmScannerApp
-from film_scanner.image_processor import ImageProcessor
-from film_scanner.frame_health_monitor import FrameHealthMonitor
+
+from film_scanner.app import FilmScannerApp
 
 
 def main():
@@ -25,20 +24,19 @@ def main():
         except (ImportError, PermissionError):
             # Ignore if we can't set priority or if psutil is not installed
             pass
-            
-        # Configure Tkinter for better performance
+
+        # Initialize tkinter
         root = tk.Tk()
-        
-        # Allow Tkinter to use hardware acceleration if available
+
+        # Configure tkinter for better performance
         try:
             root.tk.call('tk', 'scaling', 1.0)  # Consistent scaling
             root.option_add('*tearOff', False)  # Disable tear-off menus
         except Exception:
             pass
-            
-        # Set window icon if available
+
+        # Set application icon if available
         try:
-            # Find the application directory
             app_dir = os.path.dirname(os.path.abspath(__file__))
             icon_path = os.path.join(app_dir, 'assets', 'icon.png')
             if os.path.exists(icon_path):
@@ -46,46 +44,30 @@ def main():
                 root.iconphoto(True, img)
         except Exception:
             pass
-            
-        # Create and run the application
+
+        # Create and run application
         app = FilmScannerApp(root)
-        
-        # Handle application shutdown gracefully
-        def on_closing():
-            try:
-                ImageProcessor.clear_cache()  # Clear any image caches
-                app.camera_manager.stop_live_view()  # Stop camera connection
-                
-                # Cancel any pending timers
-                if app.health_check_timer is not None:
-                    root.after_cancel(app.health_check_timer)
-                    
-                root.destroy()
-                sys.exit(0)
-            except Exception as e:
-                print(f"Error during shutdown: {e}")
-                sys.exit(1)
-                
-        root.protocol("WM_DELETE_WINDOW", on_closing)
+
+        # Start the main loop
         root.mainloop()
-        
+
     except Exception as e:
         print(f"Error initializing application: {str(e)}")
-        
+
         # Show error in GUI if possible
         try:
             error_root = tk.Tk()
             error_root.title("Film Scanner - Error")
             tk.Label(
-                error_root, 
-                text=f"Error starting Film Scanner:\n\n{str(e)}", 
-                pady=20, 
+                error_root,
+                text=f"Error starting Film Scanner:\n\n{str(e)}",
+                pady=20,
                 padx=20
             ).pack()
             tk.Button(
-                error_root, 
-                text="OK", 
-                command=error_root.destroy, 
+                error_root,
+                text="OK",
+                command=error_root.destroy,
                 width=10
             ).pack(pady=(0, 20))
             error_root.mainloop()
