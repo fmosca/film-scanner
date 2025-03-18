@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 512 512"
+   version="1.1"
+   id="svg43"
+   sodipodi:docname="film-scanner.svg"
+   inkscape:version="1.2.1 (9c6d41e, 2022-07-14)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs47" />
+  <sodipodi:namedview
+     id="namedview45"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="1.6374285"
+     inkscape:cx="249.17119"
+     inkscape:cy="211.6123"
+     inkscape:window-width="1800"
+     inkscape:window-height="1097"
+     inkscape:window-x="977"
+     inkscape:window-y="1484"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg43" />
+  <!-- Background Circle -->
+  <circle
+     cx="256"
+     cy="256"
+     r="250"
+     fill="#2D3748"
+     stroke="#1A202C"
+     stroke-width="12"
+     id="circle9"
+     style="fill:#f4e1d8;fill-opacity:0.7352941" />
+  <!-- Camera Body -->
+  <rect
+     x="83.338692"
+     y="117.26881"
+     width="335.26706"
+     height="277.4624"
+     rx="21.67675"
+     ry="21.67675"
+     fill="#4a5568"
+     stroke="#1a202c"
+     stroke-width="8"
+     id="rect11" />
+  <!-- Lens -->
+  <circle
+     cx="250.97223"
+     cy="256"
+     fill="#2c5282"
+     stroke="#1a202c"
+     stroke-width="8"
+     id="circle13"
+     r="115.60933" />
+  <circle
+     cx="250.97223"
+     cy="256"
+     fill="#2b6cb0"
+     stroke="#1a202c"
+     stroke-width="4"
+     id="circle15"
+     r="93.932579" />
+  <circle
+     cx="250.97223"
+     cy="256"
+     fill="#3182ce"
+     stroke="#1a202c"
+     stroke-width="3"
+     id="circle17"
+     r="72.255829" />
+  <!-- Film Strip -->
+  <path
+     d="M 47.210779,203.9758 H 83.338695 V 305.13397 H 47.210779"
+     fill="none"
+     stroke="#1a202c"
+     stroke-width="8"
+     id="path19" />
+  <rect
+     x="48.655895"
+     y="218.42697"
+     width="11.560933"
+     height="11.560933"
+     fill="#1a202c"
+     id="rect21"
+     style="stroke-width:0.943947" />
+  <rect
+     x="48.655895"
+     y="283.31268"
+     width="11.560933"
+     height="11.560933"
+     fill="#1a202c"
+     id="rect23"
+     style="stroke-width:0.943946" />
+  <path
+     d="m 416.66961,205.25541 h 64.92997 v 98.59895 h -64.92997"
+     fill="none"
+     stroke="#1a202c"
+     stroke-width="11.5609"
+     id="path25" />
+  <!-- Camera Details -->
+  <rect
+     x="105.01544"
+     y="138.94556"
+     width="57.804665"
+     height="21.67675"
+     rx="4.33535"
+     ry="4.33535"
+     fill="#e53e3e"
+     id="rect31"
+     style="stroke-width:1.44512" />
+  <circle
+     cx="381.03271"
+     cy="154.84184"
+     fill="#f6e05e"
+     stroke="#1a202c"
+     stroke-width="4.33535"
+     id="circle33"
+     r="17.3414" />
+  <!-- Inner Lens Elements -->
+  <circle
+     cx="250.97223"
+     cy="256"
+     fill="#4299e1"
+     stroke="#1a202c"
+     stroke-width="2"
+     id="circle35"
+     r="50.579082" />
+  <circle
+     cx="250.97223"
+     cy="256"
+     fill="#63b3ed"
+     stroke="#1a202c"
+     stroke-width="2"
+     id="circle37"
+     r="28.902332" />
+  <!-- Lens Reflection -->
+  <circle
+     cx="242.30153"
+     cy="244.43907"
+     fill="#bee3f8"
+     id="circle39"
+     r="11.560933"
+     style="stroke-width:1.44512" />
+  <circle
+     cx="227.85036"
+     cy="229.9879"
+     fill="#ffffff"
+     id="circle41"
+     r="4.33535"
+     style="stroke-width:1.44512" />
+  <rect
+     x="68.887527"
+     y="218.42697"
+     width="11.560933"
+     height="11.560933"
+     fill="#1a202c"
+     id="rect191"
+     style="stroke-width:0.943947" />
+  <rect
+     x="68.887527"
+     y="283.31268"
+     width="11.560933"
+     height="11.560933"
+     fill="#1a202c"
+     id="rect193"
+     style="stroke-width:0.943946" />
+  <rect
+     x="421.49597"
+     y="218.42697"
+     width="11.560933"
+     height="11.560933"
+     fill="#1a202c"
+     id="rect195"
+     style="stroke-width:0.943947" />
+  <rect
+     x="421.49597"
+     y="283.31268"
+     width="11.560933"
+     height="11.560933"
+     fill="#1a202c"
+     id="rect197"
+     style="stroke-width:0.943946" />
+  <rect
+     x="441.72763"
+     y="218.42697"
+     width="11.560933"
+     height="11.560933"
+     fill="#1a202c"
+     id="rect199"
+     style="stroke-width:0.943947" />
+  <rect
+     x="441.72763"
+     y="283.31268"
+     width="11.560933"
+     height="11.560933"
+     fill="#1a202c"
+     id="rect201"
+     style="stroke-width:0.943946" />
+  <rect
+     x="460.63443"
+     y="218.42697"
+     width="11.560933"
+     height="11.560933"
+     fill="#1a202c"
+     id="rect203"
+     style="stroke-width:0.943947" />
+  <rect
+     x="460.63443"
+     y="283.31268"
+     width="11.560933"
+     height="11.560933"
+     fill="#1a202c"
+     id="rect205"
+     style="stroke-width:0.943946" />
+</svg>

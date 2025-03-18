@@ -38,7 +38,7 @@ def main():
         # Set application icon if available
         try:
             app_dir = os.path.dirname(os.path.abspath(__file__))
-            icon_path = os.path.join(app_dir, 'assets', 'icon.png')
+            icon_path = os.path.join(app_dir, 'assets', 'film-scanner.png')
             if os.path.exists(icon_path):
                 img = tk.PhotoImage(file=icon_path)
                 root.iconphoto(True, img)
